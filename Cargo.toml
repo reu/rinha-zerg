@@ -1,0 +1,11 @@
+[package]
+name = "rinha"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+clap = { version = "4.5.1", features = ["derive"] }
+duration-string = "0.3.0"
+humantime = "2.1.0"
+prettytable-rs = "0.10.0"
+zerg = "0.0.4"
