@@ -3,11 +3,11 @@ use std::time::Duration;
 use prettytable::{format::Alignment, row, Row, Table};
 use zerg::BenchmarkResult;
 
-pub fn print_results_table(
+pub fn results_table(
     total: &BenchmarkResult,
     transactions: &BenchmarkResult,
     accounts: &BenchmarkResult,
-) {
+) -> Table {
     let mut table = Table::new();
 
     table.add_row(row![
@@ -61,7 +61,7 @@ pub fn print_results_table(
         print_table.add_row(current_row);
     }
 
-    print_table.printstd();
+    print_table
 }
 
 fn format_duration(d: Duration) -> String {

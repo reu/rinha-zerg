@@ -1,4 +1,5 @@
 use std::{
+    io,
     sync::atomic::{AtomicU8, Ordering},
     time::Duration,
 };
@@ -9,6 +10,7 @@ use zerg::{
     json, UriExt,
 };
 
+mod json;
 mod table;
 
 #[derive(Parser, Debug)]
@@ -25,6 +27,9 @@ struct Args {
 
     #[arg(short, long, default_value_t = 4)]
     threads: usize,
+
+    #[arg(long, default_value_t = false)]
+    json: bool,
 }
 
 fn main() {
@@ -33,10 +38,10 @@ fn main() {
         duration,
         concurrency,
         threads,
+        json: json_output,
     } = Args::parse();
 
-    let create_transactions = zerg::Swarm::builder()
-        .uri(&url)
+    let create_transactions = zerg::swarm(&url)
         .threads(threads)
         .concurrency(concurrency)
         .duration(duration / 2)
@@ -59,8 +64,7 @@ fn main() {
         .zerg()
         .unwrap();
 
-    let view_account = zerg::Swarm::builder()
-        .uri(&url)
+    let view_account = zerg::swarm(&url)
         .threads(threads)
         .concurrency(concurrency)
         .duration(duration / 2)
@@ -80,5 +84,16 @@ fn main() {
 
     let total = create_transactions.clone() + view_account.clone();
 
-    crate::table::print_results_table(&total, &create_transactions, &view_account);
+    let table = crate::table::results_table(&total, &create_transactions, &view_account);
+
+    if json_output {
+        table.print(&mut std::io::stderr()).unwrap();
+        serde_json::to_writer_pretty(
+            io::stdout(),
+            &crate::json::results_json(&total, &create_transactions, &view_account),
+        )
+        .unwrap();
+    } else {
+        table.printstd();
+    }
 }
