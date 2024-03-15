@@ -1,6 +1,7 @@
 use std::{
     io,
     sync::atomic::{AtomicU8, Ordering},
+    thread,
     time::Duration,
 };
 
@@ -42,9 +43,9 @@ fn main() {
     } = Args::parse();
 
     let create_transactions = zerg::swarm(&url)
-        .threads(threads)
-        .concurrency(concurrency)
-        .duration(duration / 2)
+        .threads(threads / 2)
+        .concurrency(concurrency / 2)
+        .duration(duration)
         .request({
             let id = AtomicU8::new(0);
             move |uri| {
@@ -60,14 +61,12 @@ fn main() {
                     })))
                     .unwrap()
             }
-        })
-        .zerg()
-        .unwrap();
+        });
 
     let view_account = zerg::swarm(&url)
-        .threads(threads)
-        .concurrency(concurrency)
-        .duration(duration / 2)
+        .threads(threads / 2)
+        .concurrency(concurrency / 2)
+        .duration(duration)
         .request({
             let id = AtomicU8::new(0);
             move |uri| {
@@ -78,9 +77,13 @@ fn main() {
                     .body(Body::empty())
                     .unwrap()
             }
-        })
-        .zerg()
-        .unwrap();
+        });
+
+    let create_transactions = thread::spawn(move || create_transactions.zerg().unwrap());
+    let view_account = thread::spawn(move || view_account.zerg().unwrap());
+
+    let create_transactions = create_transactions.join().unwrap();
+    let view_account = view_account.join().unwrap();
 
     let total = create_transactions.clone() + view_account.clone();
 
